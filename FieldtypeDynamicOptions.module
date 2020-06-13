@@ -1,0 +1,239 @@
+<?php namespace ProcessWire;
+
+class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
+
+	/**
+	 * Module information
+	 *
+	 * @return array
+	 */
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Dynamic Options',
+			'summary' => 'Fieldtype for dynamic options that are generated at runtime.',
+			'version' => '0.1.0',
+			'author' => 'Robin Sallis',
+			'href' => 'https://github.com/Toutouwai/FieldtypeDynamicOptions',
+			'icon' => 'list',
+			'requires' => 'ProcessWire>=3.0.0, PHP>=5.4.0',
+		);
+	}
+
+	/**
+	 * Construct
+	 */
+	public function __construct() {
+		parent::__construct();
+	}
+
+	/**
+	 * Return class name of the Inputfield type for a Dynamic Options field
+	 *
+	 * @param Field $field Dynamic Options field
+	 * @return string
+	 */
+	public function getInputfieldClass(Field $field) {
+		if(!$field->type instanceof FieldtypeDynamicOptions) {
+			throw new WireException('The supplied Field object must be an instance of FieldtypeDynamicOptions');
+		}
+		return $field->inputfield_class ?: 'InputfieldSelect';
+	}
+
+	/**
+	 * Get instances of InputfieldSelect
+	 *
+	 * @return array
+	 */
+	public function getInputfieldSelects() {
+		$selects = [];
+		$inputfield_modules = $this->wire('modules')->find('name^=Inputfield');
+		foreach($inputfield_modules as $module) {
+			if($module instanceof ModulePlaceholder) $module = $inputfield_modules->getModule($module->className(), ['noInit' => true]);
+			if($module instanceof InputfieldSelect) {
+				$label = str_replace('Inputfield', '', $module->className());
+				$selects[$module->className()] = [
+					'label' => $label,
+					'single' => $module instanceof InputfieldSelectMultiple ? false : true,
+				];
+			}
+		}
+		return $selects;
+	}
+
+	/**
+	 * Is the Inputfield a single select?
+	 *
+	 * @param Field $field Dynamic Options field
+	 * @return boolean
+	 */
+	public function isSingle(Field $field) {
+		if(!$field->type instanceof FieldtypeDynamicOptions) {
+			throw new WireException('The supplied Field object must be an instance of FieldtypeDynamicOptions');
+		}
+		$selects = $this->getInputfieldSelects();
+		$inputfield_class = $this->getInputfieldClass($field);
+		return $selects[$inputfield_class]['single'];
+	}
+
+	/**
+	 * Get options for this field (intended to be hooked)
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @return array
+	 */
+	public function ___getSelectableOptions(Page $page, Field $field) {
+		return [];
+	}
+
+	/**
+	 * Get the Inputfield that provides input for this Fieldtype
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @return Inputfield
+	 */
+	public function getInputfield(Page $page, Field $field) {
+		$options = $this->getSelectableOptions($page, $field);
+		$inputfield = $this->wire('modules')->get($this->getInputfieldClass($field));
+		$inputfield->name = $field->name;
+		foreach($options as $value => $label) {
+			$inputfield->addOption($value, $label);
+		}
+		return $inputfield;
+	}
+
+	/**
+	 * Per Fieldtype interface, return a blank value of this Fieldtype
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @return array
+	 *
+	 */
+	public function getBlankValue(Page $page, Field $field) {
+		return [];
+	}
+
+	/**
+	 * Sanitize value for storage in a page
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param mixed $value
+	 * @return array
+	 *
+	 */
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		$value = (array) $value;
+		$allowed_options = $this->getSelectableOptions($page, $field);
+		foreach($value as $key => $item) {
+			if(!isset($allowed_options[$item])) unset($value[$key]);
+		}
+		if($this->isSingle($field)) $value = reset($value);
+		return $value;
+	}
+
+	/**
+	 * Get Fieldtypes that are known compatible with this one
+	 *
+	 * @param Field $field
+	 * @return Fieldtypes
+	 * @throws WireException
+	 */
+	public function ___getCompatibleFieldtypes(Field $field) {
+		$fieldtypes = $this->wire(new Fieldtypes());
+		foreach($this->fieldtypes as $fieldtype) {
+			if($fieldtype instanceof FieldtypeDynamicOptions) $fieldtypes->add($fieldtype);
+		}
+		return $fieldtypes;
+	}
+
+	/**
+	 * Return database schema
+	 *
+	 * @param Field $field
+	 * @return array
+	 */
+	public function getDatabaseSchema(Field $field) {
+		$schema = parent::getDatabaseSchema($field);
+		$schema['data'] = 'VARCHAR(250) NOT NULL';
+		$schema['keys']['data'] = 'FULLTEXT KEY data (data)';
+		return $schema;
+	}
+
+	/**
+	 * Method called when the field is database-queried from a selector
+	 *
+	 * @param DatabaseQuerySelect $query
+	 * @param string $table
+	 * @param string $subfield
+	 * @param string $operator
+	 * @param mixed $value
+	 * @return DatabaseQuery|DatabaseQuerySelect
+	 *
+	 */
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		if(empty($subfield) || $subfield === 'data') {
+			/** @var DatabaseQuerySelectFulltext $ft */
+			$ft = $this->wire(new DatabaseQuerySelectFulltext($query));
+			$ft->match($table, $subfield, $operator, $value);
+			return $query;
+		}
+		return parent::getMatchQuery($query, $table, $subfield, $operator, $value);
+	}
+
+	/**
+	 * Get Inputfields needed to configure this Fieldtype
+	 *
+	 * @param Field $field
+	 * @return InputfieldWrapper
+	 */
+	public function ___getConfigInputfields(Field $field) {
+		/* @var InputfieldWrapper $inputfields */
+		$inputfields = parent::___getConfigInputfields($field);
+		$modules = $this->wire('modules');
+
+		/** @var InputfieldSelect $f */
+		$f = $modules->get('InputfieldSelect');
+		$f->name = 'inputfield_class';
+		$f->label = $this->_('Input field type');
+		$field->description = $this->_('The type of input field (Inputfield module) that will be used to select option(s) for this field.');
+		$f->icon = 'plug';
+		$singles = [];
+		$multiples = [];
+		foreach($this->getInputfieldSelects() as $class => $info) {
+			if($info['single']) {
+				$singles[$class] = $info['label'];
+			} else {
+				$multiples[$class] = $info['label'];
+			}
+		}
+		$f->addOption($this->_('Single item selection'), $singles);
+		$f->addOption($this->_('Multiple item selection'), $multiples);
+		$f->value = $this->getInputfieldClass($field);
+		$inputfields->add($f);
+
+		/* @var InputfieldMarkup */
+		$f = $modules->get('InputfieldMarkup');
+		$f->label = $this->_('Selectable options');
+		$f->description = sprintf($this->_("Add the following hook to a %s file and modify according to your needs. The hook should return an array of options as 'value' => 'label'."), '**/site/ready.php**');
+		$f->value = "<pre><code>\$wire-&gt;addHookAfter('FieldtypeDynamicOptions::getSelectableOptions', function(HookEvent \$event) {
+    // The page being edited
+    \$page = \$event-&gtarguments(0);
+    // The Dynamic Options field
+    \$field = \$event-&gtarguments(1);
+    if(\$field-&gtname === '$field->name') {
+        \$event-&gtreturn = array(
+            'red' =&gt 'Red',
+            'green' =&gt 'Green',
+            'blue' =&gt 'Blue',
+        );
+    }
+});</code></pre>";
+		$inputfields->add($f);
+
+		return $inputfields;
+	}
+
+}
