@@ -26,6 +26,10 @@ $wire->addHookAfter('FieldtypeDynamicOptions::getSelectableOptions', function(Ho
 });
 ```
 
+## Formatted value
+
+If a Dynamic Options field uses a "single" input type then its formatted value is a string, and if it uses a "multiple" input type then its formatted value is an array. The unformatted value of a Dynamic Options field is always an array.
+
 ## Installation
 
 [Install](http://modules.processwire.com/install-uninstall/) the Dynamic Options module.

@@ -11,7 +11,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		return array(
 			'title' => 'Dynamic Options',
 			'summary' => 'Fieldtype for dynamic options that are generated at runtime.',
-			'version' => '0.1.0',
+			'version' => '0.1.1',
 			'author' => 'Robin Sallis',
 			'href' => 'https://github.com/Toutouwai/FieldtypeDynamicOptions',
 			'icon' => 'list',
@@ -130,6 +130,19 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		foreach($value as $key => $item) {
 			if(!isset($allowed_options[$item])) unset($value[$key]);
 		}
+		return $value;
+	}
+
+	/**
+	 * Format the given value for output
+	 *
+	 * @param Page $page Page that the value lives on
+	 * @param Field $field Field that represents the value
+	 * @param string|int|object $value The value to format
+	 * @return string|array
+	 */
+	public function ___formatValue(Page $page, Field $field, $value) {
+		// If field is "single" then the formatted value is a string
 		if($this->isSingle($field)) $value = reset($value);
 		return $value;
 	}
@@ -157,7 +170,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	 */
 	public function getDatabaseSchema(Field $field) {
 		$schema = parent::getDatabaseSchema($field);
-		$schema['data'] = 'VARCHAR(250) NOT NULL';
+		$schema['data'] = 'TEXT NOT NULL';
 		$schema['keys']['data'] = 'FULLTEXT KEY data (data)';
 		return $schema;
 	}
