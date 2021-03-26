@@ -12,17 +12,17 @@ An example hook is shown on the Details tab of a Dynamic Options field:
 
 ```php
 $wire->addHookAfter('FieldtypeDynamicOptions::getSelectableOptions', function(HookEvent $event) {
-	// The page being edited
-	$page = $event->arguments(0);
-	// The Dynamic Options field
-	$field = $event->arguments(1);
-	if($field->name === 'dynamic_options') {
-		$event->return = [
-			'red' => 'Red',
-			'green' => 'Green',
-			'blue' => 'Blue',
-		];
-	}
+    // The page being edited
+    $page = $event->arguments(0);
+    // The Dynamic Options field
+    $field = $event->arguments(1);
+    if($field->name === 'dynamic_options') {
+        $event->return = [
+            'red' => 'Red',
+            'green' => 'Green',
+            'blue' => 'Blue',
+        ];
+    }
 });
 ```
 
@@ -32,59 +32,59 @@ $wire->addHookAfter('FieldtypeDynamicOptions::getSelectableOptions', function(Ho
 
 ```php
 $wire->addHookAfter('FieldtypeDynamicOptions::getSelectableOptions', function(HookEvent $event) {
-	// The page being edited
-	$page = $event->arguments(0);
-	// The Dynamic Options field
-	$field = $event->arguments(1);
+    // The page being edited
+    $page = $event->arguments(0);
+    // The Dynamic Options field
+    $field = $event->arguments(1);
 
-	// Select from the "files" field on the page
-	if($field->name === 'select_files') {
-		$options = [];
-		foreach($page->files as $file) {
-			// Value is basename, label is description if one exists
-			$options[$file->basename] = $file->get('description|basename');
-		}
-		$event->return = $options;
-	}
+    // Select from the "files" field on the page
+    if($field->name === 'select_files') {
+        $options = [];
+        foreach($page->files as $file) {
+            // Value is basename, label is description if one exists
+            $options[$file->basename] = $file->get('description|basename');
+        }
+        $event->return = $options;
+    }
 
-	// Select from files in a folder
-	if($field->name === 'select_folder_files') {
-		$options = [];
-		$path = $event->wire()->config->paths->root . 'my-folder/';
-		$files = $event->wire()->files->find($path);
-		foreach($files as $file) {
-			// Value is full path, label is basename
-			$options[$file] = str_replace($path, '', $file);
-		}
-		$event->return = $options;
-	}
+    // Select from files in a folder
+    if($field->name === 'select_folder_files') {
+        $options = [];
+        $path = $event->wire()->config->paths->root . 'my-folder/';
+        $files = $event->wire()->files->find($path);
+        foreach($files as $file) {
+            // Value is full path, label is basename
+            $options[$file] = str_replace($path, '', $file);
+        }
+        $event->return = $options;
+    }
 
-	// Select from non-system templates
-	if($field->name === 'select_template') {
-		$options = [];
-		foreach($event->wire()->templates as $template) {
-			if($template->flags & Template::flagSystem) continue;
-			$options[$template->id] = $template->name;
-		}
-		$event->return = $options;
-	}
+    // Select from non-system templates
+    if($field->name === 'select_template') {
+        $options = [];
+        foreach($event->wire()->templates as $template) {
+            if($template->flags & Template::flagSystem) continue;
+            $options[$template->id] = $template->name;
+        }
+        $event->return = $options;
+    }
 
-	// Select from non-system fields
-	if($field->name === 'select_field') {
-		$options = [];
-		foreach($event->wire()->fields as $field) {
-			if($field->flags & Field::flagSystem) continue;
-			$options[$field->id] = $field->name;
-		}
-		$event->return = $options;
-	}
+    // Select from non-system fields
+    if($field->name === 'select_field') {
+        $options = [];
+        foreach($event->wire()->fields as $field) {
+            if($field->flags & Field::flagSystem) continue;
+            $options[$field->id] = $field->name;
+        }
+        $event->return = $options;
+    }
 
-	// Select from FormBuilder forms
-	if($field->name === 'select_formbuilder_form') {
-		$form_names = $event->wire()->forms->getFormNames();
-		// Use form names as both keys and values
-		$event->return = array_combine($form_names, $form_names);
-	}
+    // Select from FormBuilder forms
+    if($field->name === 'select_formbuilder_form') {
+        $form_names = $event->wire()->forms->getFormNames();
+        // Use form names as both keys and values
+        $event->return = array_combine($form_names, $form_names);
+    }
 
 });
 ```
