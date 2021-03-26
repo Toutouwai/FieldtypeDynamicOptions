@@ -26,6 +26,10 @@ $wire->addHookAfter('FieldtypeDynamicOptions::getSelectableOptions', function(Ho
 });
 ```
 
+## Formatted value
+
+If a Dynamic Options field uses a "single" input type then its formatted value is a string, and if it uses a "multiple" input type then its formatted value is an array. The unformatted value of a Dynamic Options field is always an array.
+
 ### Examples of possible uses
 
 ![dynamic-options](https://user-images.githubusercontent.com/1538852/112603696-3a49c700-8e7a-11eb-8e94-60f9e7f97317.png)
@@ -88,7 +92,3 @@ $wire->addHookAfter('FieldtypeDynamicOptions::getSelectableOptions', function(Ho
 
 });
 ```
-
-## Formatted value
-
-If a Dynamic Options field uses a "single" input type then its formatted value is a string, and if it uses a "multiple" input type then its formatted value is an array. The unformatted value of a Dynamic Options field is always an array.
