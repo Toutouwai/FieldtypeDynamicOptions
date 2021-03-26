@@ -16,7 +16,7 @@ $wire->addHookAfter('FieldtypeDynamicOptions::getSelectableOptions', function(Ho
     $page = $event->arguments(0);
     // The Dynamic Options field
     $field = $event->arguments(1);
-    if($field->name === 'dynamic_options') {
+    if($field->name === 'your_field_name') {
         $event->return = [
             'red' => 'Red',
             'green' => 'Green',
