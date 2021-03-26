@@ -11,7 +11,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		return array(
 			'title' => 'Dynamic Options',
 			'summary' => 'Fieldtype for dynamic options that are generated at runtime.',
-			'version' => '0.1.1',
+			'version' => '0.1.2',
 			'author' => 'Robin Sallis',
 			'href' => 'https://github.com/Toutouwai/FieldtypeDynamicOptions',
 			'icon' => 'list',
@@ -20,22 +20,12 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	}
 
 	/**
-	 * Construct
-	 */
-	public function __construct() {
-		parent::__construct();
-	}
-
-	/**
 	 * Return class name of the Inputfield type for a Dynamic Options field
 	 *
 	 * @param Field $field Dynamic Options field
 	 * @return string
 	 */
-	public function getInputfieldClass(Field $field) {
-		if(!$field->type instanceof FieldtypeDynamicOptions) {
-			throw new WireException('The supplied Field object must be an instance of FieldtypeDynamicOptions');
-		}
+	protected function getInputfieldClass(Field $field) {
 		return $field->inputfield_class ?: 'InputfieldSelect';
 	}
 
@@ -44,9 +34,9 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	 *
 	 * @return array
 	 */
-	public function getInputfieldSelects() {
+	protected function getInputfieldSelects() {
 		$selects = [];
-		$inputfield_modules = $this->wire('modules')->find('name^=Inputfield');
+		$inputfield_modules = $this->wire()->modules->find('name^=Inputfield');
 		foreach($inputfield_modules as $module) {
 			if($module instanceof ModulePlaceholder) $module = $inputfield_modules->getModule($module->className(), ['noInit' => true]);
 			if($module instanceof InputfieldSelect) {
@@ -66,10 +56,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	 * @param Field $field Dynamic Options field
 	 * @return boolean
 	 */
-	public function isSingle(Field $field) {
-		if(!$field->type instanceof FieldtypeDynamicOptions) {
-			throw new WireException('The supplied Field object must be an instance of FieldtypeDynamicOptions');
-		}
+	protected function isSingle(Field $field) {
 		$selects = $this->getInputfieldSelects();
 		$inputfield_class = $this->getInputfieldClass($field);
 		return $selects[$inputfield_class]['single'];
@@ -95,7 +82,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	 */
 	public function getInputfield(Page $page, Field $field) {
 		$options = $this->getSelectableOptions($page, $field);
-		$inputfield = $this->wire('modules')->get($this->getInputfieldClass($field));
+		$inputfield = $this->wire()->modules->get($this->getInputfieldClass($field));
 		$inputfield->name = $field->name;
 		foreach($options as $value => $label) {
 			$inputfield->addOption($value, $label);
@@ -138,7 +125,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	 *
 	 * @param Page $page Page that the value lives on
 	 * @param Field $field Field that represents the value
-	 * @param string|int|object $value The value to format
+	 * @param array $value The value to format
 	 * @return string|array
 	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
@@ -152,7 +139,6 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	 *
 	 * @param Field $field
 	 * @return Fieldtypes
-	 * @throws WireException
 	 */
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = $this->wire(new Fieldtypes());
@@ -205,7 +191,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	public function ___getConfigInputfields(Field $field) {
 		/* @var InputfieldWrapper $inputfields */
 		$inputfields = parent::___getConfigInputfields($field);
-		$modules = $this->wire('modules');
+		$modules = $this->wire()->modules;
 
 		/** @var InputfieldSelect $f */
 		$f = $modules->get('InputfieldSelect');
@@ -237,11 +223,12 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
     // The Dynamic Options field
     \$field = \$event-&gtarguments(1);
     if(\$field-&gtname === '$field->name') {
-        \$event-&gtreturn = array(
+        // Your selectable options as 'value' => 'label'
+        \$event-&gtreturn = [
             'red' =&gt 'Red',
             'green' =&gt 'Green',
             'blue' =&gt 'Blue',
-        );
+        ];
     }
 });</code></pre>";
 		$inputfields->add($f);
