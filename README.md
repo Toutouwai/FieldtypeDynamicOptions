@@ -4,7 +4,21 @@ A module for ProcessWire CMS/CMF. A Fieldtype for dynamic options that are gener
 
 ## Configuration
 
+### Inputfield type
+
 You can choose from a range of inputfield types on the Details tab of a Dynamic Options field. Your field will return a string or an array depending on if the selected input field type is for  "single item selection" or "multiple item selection".
+
+### Maximum number of items
+
+You can define a maximum number of items the field is allowed to contain. The core inputfields supported by this module will become disabled once the limit is reached. This option is only applicable if you have selected an inputfield type that is for multiple item selection.
+
+### Format as Pagefile/Pageimage object(s)
+
+If the field will store paths/URLs to Pagefiles/Pageimages then you can enable this option to have the formatted value be a Pagefile/Pageimage object for "single" fields or an array of Pagefile/Pageimage objects for "multiple" fields.
+
+There is a related [Select Images](https://github.com/Toutouwai/InputfieldSelectImages) inputfield module that allows you to visually select image thumbnails.
+
+### Defining selectable options
 
 Selectable options for a Dynamic Options field should be set in a `FieldtypeDynamicOptions::getSelectableOptions` hook in /site/ready.php. The hook should return an array of options as 'value' => 'label'.
 
@@ -29,6 +43,8 @@ $wire->addHookAfter('FieldtypeDynamicOptions::getSelectableOptions', function(Ho
 ## Formatted value
 
 If a Dynamic Options field uses a "single" input type then its formatted value is a string, and if it uses a "multiple" input type then its formatted value is an array. The unformatted value of a Dynamic Options field is always an array.
+
+Also see the Configuration section above for description of an option to have the formatted value be Pagefile/Pageimage object(s). 
 
 ## Examples of possible uses
 

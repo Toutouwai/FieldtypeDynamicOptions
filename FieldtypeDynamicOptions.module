@@ -11,7 +11,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		return array(
 			'title' => 'Dynamic Options',
 			'summary' => 'Fieldtype for dynamic options that are generated at runtime.',
-			'version' => '0.1.2',
+			'version' => '0.1.3',
 			'author' => 'Robin Sallis',
 			'href' => 'https://github.com/Toutouwai/FieldtypeDynamicOptions',
 			'icon' => 'list',
@@ -51,15 +51,19 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	}
 
 	/**
-	 * Is the Inputfield a single select?
+	 * Does this field allow only a single item?
 	 *
 	 * @param Field $field Dynamic Options field
 	 * @return boolean
 	 */
-	protected function isSingle(Field $field) {
-		$selects = $this->getInputfieldSelects();
-		$inputfield_class = $this->getInputfieldClass($field);
-		return $selects[$inputfield_class]['single'];
+	protected function isSingle(Field $field, Page $page) {
+		if($field->max_items === 1) {
+			return true;
+		} else {
+			$selects = $this->getInputfieldSelects();
+			$inputfield_class = $this->getInputfieldClass($field);
+			return $selects[$inputfield_class]['single'];
+		}
 	}
 
 	/**
@@ -85,8 +89,39 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		$inputfield = $this->wire()->modules->get($this->getInputfieldClass($field));
 		$inputfield->name = $field->name;
 		foreach($options as $value => $label) {
-			$inputfield->addOption($value, $label);
+			if(is_array($label)) {
+				// Must include 'label' key
+				if(!isset($label['label'])) continue;
+				// Get attributes if any
+				$attributes = [];
+				if(isset($label['attributes']) && is_array($label['attributes'])) $attributes = $label['attributes'];
+				$inputfield->addOption($value, $label['label'], $attributes);
+			} else {
+				$inputfield->addOption($value, $label);
+			}
 		}
+
+		// If there is a max items limit
+		if($this->wire()->process instanceof WirePageEditor && $field->max_items) {
+			// Add limit as a data attribute
+			$inputfield->wrapAttr('data-max-items', $field->max_items);
+
+			// Add JS for limiting supported "multiple" inputfields
+			$config = $this->wire()->config;
+			$info = $this->getModuleInfo();
+			$version = $info['version'];
+			$config->scripts->add($config->urls->{$this} . "{$this}.js?v={$version}");
+
+			// Show warning if number of items exceeds maximum, but not when form is submitted
+			if(!$this->wire()->input->is('post')) {
+				$count = count($page->getUnformatted($field->name));
+				if($count > $field->max_items) {
+					$field_context = $field->getContext($page);
+					$inputfield->warning(sprintf($this->_('The number of items in field "%s" exceeds the limit of %d - please remove %d item(s).'), $field_context->label, $field->max_items, $count - $field->max_items));
+				}
+			}
+		}
+
 		return $inputfield;
 	}
 
@@ -96,7 +131,6 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	 * @param Page $page
 	 * @param Field $field
 	 * @return array
-	 *
 	 */
 	public function getBlankValue(Page $page, Field $field) {
 		return [];
@@ -109,13 +143,31 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	 * @param Field $field
 	 * @param mixed $value
 	 * @return array
-	 *
 	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
 		$value = (array) $value;
 		$allowed_options = $this->getSelectableOptions($page, $field);
 		foreach($value as $key => $item) {
 			if(!isset($allowed_options[$item])) unset($value[$key]);
+		}
+		return $value;
+	}
+
+	/**
+	 * Given an 'awake' value, as set by wakeupValue(), convert the value back to a basic type for storage in database.
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param array $value
+	 * @return array
+	 */
+	public function ___sleepValue(Page $page, Field $field, $value) {
+		// Apply max items limit if any
+		if($field->max_items && count($value) > $field->max_items) {
+			$value = array_slice($value, 0, $field->max_items);
+			// Show warning notice in admin
+			$field_context = $field->getContext($page);
+			$this->wire()->warning(sprintf($this->_('Field "%s" was truncated to its limit of %d items.'), $field_context->label, $field->max_items));
 		}
 		return $value;
 	}
@@ -129,8 +181,25 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	 * @return string|array
 	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
+		if($field->format_as_pagefiles) {
+			// Get PagefilesManager for home page
+			$pm = $this->wire()->pages->get(1)->filesManager;
+			foreach($value as $key => $item) {
+				$pagefile = $pm->getFile($item);
+				// Remove any invalid values that don't convert to a Pagefile
+				if(!$pagefile) {
+					unset($value[$key]);
+					continue;
+				}
+				$value[$key] = $pagefile;
+			}
+		}
+		// Apply max items limit if any
+		if($field->max_items && count($value) > $field->max_items) {
+			$value = array_slice($value, 0, $field->max_items);
+		}
 		// If field is "single" then the formatted value is a string
-		if($this->isSingle($field)) $value = reset($value);
+		if($this->isSingle($field, $page)) $value = reset($value);
 		return $value;
 	}
 
@@ -196,7 +265,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		/** @var InputfieldSelect $f */
 		$f = $modules->get('InputfieldSelect');
 		$f->name = 'inputfield_class';
-		$f->label = $this->_('Input field type');
+		$f->label = $this->_('Inputfield type');
 		$field->description = $this->_('The type of input field (Inputfield module) that will be used to select option(s) for this field.');
 		$f->icon = 'plug';
 		$singles = [];
@@ -211,6 +280,31 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		$f->addOption($this->_('Single item selection'), $singles);
 		$f->addOption($this->_('Multiple item selection'), $multiples);
 		$f->value = $this->getInputfieldClass($field);
+		$inputfields->add($f);
+
+		/** @var InputfieldInteger $f */
+		$f = $modules->get('InputfieldInteger');
+		$f_name = 'max_items';
+		$f->name = $f_name;
+		$f->label = $this->_('Maximum number of items');
+		$f->appendMarkup = "&nbsp; <span class='description'>" . $this->_('(a value of 0 means no limit)') . "</span>";
+		$f->inputType = 'number';
+		$f->defaultValue = 0;
+		if($field->$f_name) {
+			$f->value = $field->$f_name;
+		} else {
+			$f->collapsed = Inputfield::collapsedYes;
+		}
+		$inputfields->add($f);
+
+		/** @var InputfieldCheckbox $f */
+		$f = $modules->get('InputfieldCheckbox');
+		$f_name = 'format_as_pagefiles';
+		$f->name = $f_name;
+		$f->label = $this->_('Format as Pagefile/Pageimage object(s)');
+		$f->description = $this->_('If this field stores paths/URLs to Pagefiles/Pageimages then you can enable this option to have the formatted value be a Pagefile/Pageimage object for "single" fields or an array of Pagefile/Pageimage objects for "multiple" fields.');
+		$f->collapsed = Inputfield::collapsedBlank;
+		$f->checked = $field->$f_name === 1 ? 'checked' : '';
 		$inputfields->add($f);
 
 		/* @var InputfieldMarkup */
