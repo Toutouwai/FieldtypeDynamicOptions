@@ -11,7 +11,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		return array(
 			'title' => 'Dynamic Options',
 			'summary' => 'Fieldtype for dynamic options that are generated at runtime.',
-			'version' => '0.1.3',
+			'version' => '0.1.4',
 			'author' => 'Robin Sallis',
 			'href' => 'https://github.com/Toutouwai/FieldtypeDynamicOptions',
 			'icon' => 'list',
@@ -114,10 +114,13 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 
 			// Show warning if number of items exceeds maximum, but not when form is submitted
 			if(!$this->wire()->input->is('post')) {
-				$count = count($page->getUnformatted($field->name));
-				if($count > $field->max_items) {
-					$field_context = $field->getContext($page);
-					$inputfield->warning(sprintf($this->_('The number of items in field "%s" exceeds the limit of %d - please remove %d item(s).'), $field_context->label, $field->max_items, $count - $field->max_items));
+				$value = $page->getUnformatted($field->name);
+				if($value) {
+					$count = count($value);
+					if($count > $field->max_items) {
+						$field_context = $field->getContext($page);
+						$inputfield->warning(sprintf($this->_('The number of items in field "%s" exceeds the limit of %d - please remove %d item(s).'), $field_context->label, $field->max_items, $count - $field->max_items));
+					}
 				}
 			}
 		}
