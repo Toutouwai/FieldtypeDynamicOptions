@@ -1,0 +1,22 @@
+{
+	"name": "toutouwai/fieldtype-dynamic-options",
+	"type": "pw-module",
+	"description": "A ProcessWire Fieldtype module for dynamic options that are generated at runtime.",
+	"keywords": [
+		"module",
+		"processwire"
+	],
+	"homepage": "https://github.com/Toutouwai/FieldtypeDynamicOptions",
+	"license": "MPL-2.0",
+	"authors": [
+		{
+			"name": "Robin Sallis",
+			"homepage": "https://github.com/Toutouwai"
+		}
+	],
+	"require": {
+		"php": ">=5.4",
+		"processwire/processwire": ">=3.0.0",
+		"wireframe-framework/processwire-composer-installer": "^1.0.0"
+	}
+}
