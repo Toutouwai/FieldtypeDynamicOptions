@@ -11,7 +11,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		return array(
 			'title' => 'Dynamic Options',
 			'summary' => 'Fieldtype for dynamic options that are generated at runtime.',
-			'version' => '0.1.5',
+			'version' => '0.1.6',
 			'author' => 'Robin Sallis',
 			'href' => 'https://github.com/Toutouwai/FieldtypeDynamicOptions',
 			'icon' => 'list',
@@ -103,6 +103,9 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 
 		// If there is a max items limit
 		if($this->wire()->process instanceof WirePageEditor && $field->max_items) {
+			// Add limit as a data attribute (may be used by inputfield, e.g. InputfieldSelectImages)
+			$inputfield->wrapAttr('data-max-items', $field->max_items);
+
 			// Show warning if number of items exceeds maximum, but not when form is submitted
 			if(!$this->wire()->input->is('post')) {
 				$value = $page->getUnformatted($field->name);
