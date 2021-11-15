@@ -11,7 +11,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		return array(
 			'title' => 'Dynamic Options',
 			'summary' => 'Fieldtype for dynamic options that are generated at runtime.',
-			'version' => '0.1.6',
+			'version' => '0.1.7',
 			'author' => 'Robin Sallis',
 			'href' => 'https://github.com/Toutouwai/FieldtypeDynamicOptions',
 			'icon' => 'list',
@@ -85,7 +85,13 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 	 * @return Inputfield
 	 */
 	public function getInputfield(Page $page, Field $field) {
-		$options = $this->getSelectableOptions($page, $field);
+		// Don't call hookable method when the process is ProcessField
+		// because it supplies the home page as a dummy page instead of the expected edited page
+		if($this->wire()->process instanceof ProcessField) {
+			$options = [];
+		} else {
+			$options = $this->getSelectableOptions($page, $field);
+		}
 		$inputfield = $this->wire()->modules->get($this->getInputfieldClass($field));
 		$inputfield->name = $field->name;
 		foreach($options as $value => $label) {
