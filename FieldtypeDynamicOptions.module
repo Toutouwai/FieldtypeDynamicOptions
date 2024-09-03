@@ -11,7 +11,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		return array(
 			'title' => 'Dynamic Options',
 			'summary' => 'Fieldtype for dynamic options that are generated at runtime.',
-			'version' => '0.1.7',
+			'version' => '0.1.8',
 			'author' => 'Robin Sallis',
 			'href' => 'https://github.com/Toutouwai/FieldtypeDynamicOptions',
 			'icon' => 'list',
@@ -269,7 +269,7 @@ class FieldtypeDynamicOptions extends FieldtypeMulti implements Module {
 		$f = $modules->get('InputfieldSelect');
 		$f->name = 'inputfield_class';
 		$f->label = $this->_('Inputfield type');
-		$field->description = $this->_('The type of input field (Inputfield module) that will be used to select option(s) for this field.');
+		$f->description = $this->_('The type of input field (Inputfield module) that will be used to select option(s) for this field.');
 		$f->icon = 'plug';
 		$singles = [];
 		$multiples = [];
